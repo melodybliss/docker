@@ -1,4 +1,5 @@
 #!/bin/bash
+typeset -i START END i
 START=49000
 END=50000
 
@@ -13,7 +14,13 @@ if [ ! -z "$2" ]; then
   END=$2
 fi
 
-for i in $(seq ${START} ${END}); do
+if ((START > END)); then
+  echo "START parameter MUST be smaller than END parameter"
+  exit 1
+fi
+
+#for i in $(seq ${START} ${END}); do
+for ((i=START; i <= END; i++)); do
   echo "Port ${i}"
   VBoxManage modifyvm "boot2docker-vm" --natpf1 "tcp-port$i,tcp,,$i,,$i";
   VBoxManage modifyvm "boot2docker-vm" --natpf1 "udp-port$i,udp,,$i,,$i";
