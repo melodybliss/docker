@@ -2,7 +2,19 @@
 START=49000
 END=50000
 
-for i in {49000..50000}; do
-VBoxManage modifyvm "boot2docker-vm" --natpf1 "tcp-port$i,tcp,,$i,,$i";
-VBoxManage modifyvm "boot2docker-vm" --natpf1 "udp-port$i,udp,,$i,,$i";
+if [ ! -z "$1" ]; then
+  START=$1
+  if [ -z "$2" ]; then
+    END=${START}
+  fi
+fi
+
+if [ ! -z "$2" ]; then
+  END=$2
+fi
+
+for i in $(seq ${START} ${END}); do
+  echo "Port ${i}"
+  VBoxManage modifyvm "boot2docker-vm" --natpf1 "tcp-port$i,tcp,,$i,,$i";
+  VBoxManage modifyvm "boot2docker-vm" --natpf1 "udp-port$i,udp,,$i,,$i";
 done
