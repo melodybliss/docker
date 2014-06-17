@@ -1,0 +1,82 @@
+#!/bin/sh
+# File:		samba.start
+# Author:	Melody Bliss <melody@melodybliss.org>
+# Purpose:
+#   Start the SAMBA server via docker
+
+
+SAMBA_IMAGE=svendowideit/samba
+BUSYBOX_IMAGE=busybox
+DEBUG=
+DOCKER=/usr/local/bin/docker
+DEFAULT_CONTAINER_NAME=my-data
+BOOT2DOCKER=/usr/local/bin/boot2docker
+
+D()
+{
+  if [ -z "${DEBUG}" ]; then
+    return
+  fi
+
+  echo "DEBUG: $*"
+}
+
+E()
+{
+  echo "ERROR: $*"
+}
+
+show_help()
+{
+  cat <<EOF
+$0 [-dh]
+EOF
+}
+
+while getopts 'dh' opt; do
+  case ${opt} in
+    d)
+	DEBUG=yes
+	D "On."
+	;;
+    h)
+	show_help
+	exit
+	;;
+  esac
+done
+shift `expr ${OPTIND} - 1`
+
+# docker run --rm -v /usr/local/bin/docker:/docker -v /var/run/docker.sock:/docker.sock svendowideit/samba my-data
+
+if [ -z "$1" ]; then
+  CONTAINER_NAME=${DEFAULT_CONTAINER_NAME}
+else
+  CONTAINER_NAME=$1
+fi
+
+D "CONTAINER_NAME: ${CONTAINER_NAME}"
+
+echo "Starting SAMBA server"
+${DOCKER} run --rm -v /usr/local/bin/docker:/docker -v /var/run/docker.sock:/docker.sock ${SAMBA_IMAGE} ${CONTAINER_NAME}
+
+# Now let's get the boot2docker VM's ip
+_IP=`${BOOT2DOCKER} ip`
+_ERR=$?
+
+if [ ${_ERR} -ne 0 ]; then
+  E "boot2docker error while getting IP. Retcode: ${_ERR}"
+  exit 100
+fi
+
+cat <<EOF
+In Finder, mount: cifs://guest:@${_IP}/data
+or issue
+open cifs://guest:@${_IP}/data
+
+from Terminal
+
+Attempting to open mount...
+EOF
+
+/usr/bin/open cifs://guest:@${_IP}/data
