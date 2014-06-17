@@ -1,0 +1,81 @@
+#!/bin/sh
+# File:		samba.mkvol
+# Author:	Melody Bliss <melody@melodybliss.org>
+# Purpose:
+#	Create a /data volume using name passed on commandline (or default to
+# "my-data"
+
+SAMBA_IMAGE=svendowideit/samba
+BUSYBOX_IMAGE=busybox
+DEBUG=
+DOCKER=/usr/local/bin/docker
+DEFAULT_CONTAINER_NAME=my-data
+
+D()
+{
+  if [ -z "${DEBUG}" ]; then
+    return
+  fi
+
+  echo "DEBUG: $*"
+}
+
+E()
+{
+  echo "ERROR: $*"
+}
+
+show_help()
+{
+  cat <<EOF
+$0 [-h] CONTAINER_NAME
+
+where CONTAINER_NAME defaults to "my-data" if none is supplied.
+EOF
+}
+
+while getopts 'hd' opt; do
+  case ${opt} in
+    h)
+	show_help
+	exit
+	;;
+    d)
+	DEBUG=yes
+	D "On."
+	;;
+  esac
+done
+shift `expr ${OPTIND} - 1`
+
+if [ ! -z "$1" ]; then
+  CONTAINER_NAME=$1
+else
+  CONTAINER_NAME=${DEFAULT_CONTAINER_NAME}
+fi
+
+D "CONTAINER_NAME: ${CONTAINER_NAME}"
+
+# docker inspect -f '{{.Volumes}}' my-data
+
+# Does the container exist with the volume?
+CONTAINER_DATA=`${DOCKER} inspect -f '{{.Volumes}}' ${CONTAINER_NAME} 2>&1`
+_ERR=$?
+
+if [ ${_ERR} -eq 0 ]; then
+  # Container already exists.
+  E "Container ${CONTAINER_NAME} exists."
+  exit 100
+fi
+
+# At this point, we know the container doesn't exist. Create it
+
+${DOCKER} run -v /data --name ${CONTAINER_NAME} ${BUSYBOX_IMAGE} true
+_ERR=$?
+
+if [ ${_ERR} -ne 0 ]; then
+  E "docker had an error. ${_ERR} returned."
+  exit 101
+fi
+
+echo "Created Container ${CONTAINER_NAME} with data vol /data"
